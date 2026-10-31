@@ -1,0 +1,32 @@
+<resources>
+    <string name="app_name">TapShare</string>
+    <string name="main_hint">Per trasferire un file avvicina i due telefoni (NFC): il file viaggia poi su una connessione Wi-Fi diretta, senza internet.</string>
+    <string name="btn_send">Invia</string>
+    <string name="btn_receive">Ricevi</string>
+    <string name="send_title">Invia un file</string>
+    <string name="receive_title">Ricevi un file</string>
+    <string name="btn_pick">Scegli file</string>
+    <string name="no_file">Nessun file selezionato</string>
+    <string name="file_info">%1$s (%2$s)</string>
+    <string name="pick_first">Scegli prima il file da inviare.</string>
+    <string name="tap_now">Avvicina il retro di questo telefono a quello del destinatario (che deve avere aperto «Ricevi»).</string>
+    <string name="connecting">Connessione diretta in corso…</string>
+    <string name="sending">Invio di %1$s…</string>
+    <string name="sent_ok">Inviato: %1$s</string>
+    <string name="preparing">Preparazione della connessione…</string>
+    <string name="ready_receive">Pronto. Tieni lo schermo acceso e avvicina l\'altro telefono.</string>
+    <string name="receiving">Ricezione di %1$s…</string>
+    <string name="received_ok">Ricevuto: %1$s (%2$s)\nSalvato in Download/TapShare</string>
+    <string name="failed">Errore: %1$s</string>
+    <string name="retry_hint">Avvicina di nuovo i telefoni per riprovare.</string>
+    <string name="perm_needed">Servono i permessi per la connessione Wi-Fi diretta.</string>
+    <string name="nfc_missing">Questo telefono non ha l\'NFC.</string>
+    <string name="hce_missing">Questo telefono non supporta l\'emulazione di carta NFC, necessaria per ricevere.</string>
+    <string name="nfc_off">L\'NFC è disattivato: attivalo nelle impostazioni.</string>
+    <string name="wifi_off">Il Wi-Fi è disattivato: attivalo e riprova.</string>
+    <string name="wifi_unavailable">Impossibile collegarsi all\'altro telefono.</string>
+    <string name="not_tapshare">L\'altro telefono non sta ricevendo con TapShare.</string>
+    <string name="size_unknown">Impossibile leggere la dimensione del file.</string>
+    <string name="no_ack">Il destinatario non ha confermato la ricezione.</string>
+    <string name="connect_failed">Connessione fallita.</string>
+</resources>
