@@ -1,3 +1,4 @@
+
 name: Build APK
 
 on:
@@ -5,25 +6,152 @@ on:
     branches: [main, master]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
+concurrency:
+  group: tapshare-release
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
 
-      - uses: actions/setup-java@v4
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Calculate next version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          LATEST_TAG=""
+
+          while IFS= read -r tag; do
+            if [[ "$tag" =~ ^v([0-9]+)\.([0-9]+)$ ]]; then
+              LATEST_TAG="$tag"
+              break
+            fi
+          done < <(git tag --list 'v[0-9]*' --sort=-version:refname)
+
+          if [[ -z "$LATEST_TAG" ]]; then
+            MAJOR=1
+            MINOR=1
+          else
+            MAJOR="${LATEST_TAG#v}"
+            MINOR="${MAJOR#*.}"
+            MAJOR="${MAJOR%%.*}"
+          fi
+
+          if (( MINOR >= 9 )); then
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+          else
+            MINOR=$((MINOR + 1))
+          fi
+
+          VERSION="${MAJOR}.${MINOR}"
+          TAG="v${VERSION}"
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+          echo "Next version: $TAG"
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
+          java-version: '17'
 
-      - uses: gradle/actions/setup-gradle@v4
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Build debug APK
+        shell: bash
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: TapShare-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+      - name: Rename APK
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          mkdir -p release
+          cp app/build/outputs/apk/debug/app-debug.apk \
+             "release/TapShare-v${VERSION}.apk"
+
+      - name: Generate release changelog
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          cat > release/CHANGELOG.md <<EOF
+          <img src="https://raw.githubusercontent.com/AloofPath1558/TapShare/refs/heads/main/docs/assets/logo.svg" alt="TapShare" width="120">
+
+          # TapShare v${VERSION}
+
+          **Share files. No accounts. No uploads. Just connect and send.**
+
+          TapShare is a simple, cross-platform file-sharing solution designed to make transferring files between devices fast and convenient.
+
+          ### ✨ Features
+
+          - **NFC Tap-to-Share** — Connect compatible Android phones using NFC and Wi-Fi Direct.
+          - **Code & QR Pairing** — Connect devices using a six-character code or a QR code.
+          - **Direct Transfers** — Transfer files between connected devices without uploading them to a central file-hosting server.
+          - **No Accounts Required** — Share files without creating an account.
+          - **Native Android Integration** — Share files from other Android apps and receive files in your Downloads folder.
+          - **Built-in Web Mode** — Access code-based sharing using the app or a compatible web browser.
+          - **Consistent Design** — A unified visual identity across the app and website.
+
+          ### 📱 Requirements
+
+          **Tap-to-Share**
+          - Two physical Android phones running Android 10 or newer.
+          - NFC card emulation (HCE) and Wi-Fi Direct support.
+          - NFC and Wi-Fi enabled, with both screens unlocked.
+
+          **Code & QR Sharing**
+          - A modern web browser or the TapShare Android app on both devices.
+          - An internet connection for pairing.
+
+          ### 🔒 Privacy & Connectivity
+
+          TapShare is designed to transfer files directly between devices. In code mode, a pairing service helps establish the connection, while the file itself is not uploaded to that service. Depending on network conditions, WebRTC may use a relay.
+
+          **Note:** Tap mode uses a WPA2-protected Wi-Fi Direct network, but the file-transfer connection does not add its own encryption layer. Use trusted devices and networks.
+
+          ### 📦 Installation
+
+          Download \`TapShare-v${VERSION}.apk\` from the Assets section below and install it on your Android device.
+
+          **Project:** https://github.com/AloofPath1558/TapShare
+
+          *TapShare v${VERSION} — Simple, direct file sharing across devices.*
+          EOF
+
+      - name: Create Git tag
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          git tag "$TAG" "$GITHUB_SHA"
+          git push origin "$TAG"
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release create "$TAG" \
+            "release/TapShare-v${VERSION}.apk#TapShare-v${VERSION}.apk" \
+            --title "TapShare ${TAG}" \
+            --notes-file release/CHANGELOG.md \
+            --verify-tag
