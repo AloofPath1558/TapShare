@@ -1,0 +1,58 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>404 — Page Not Found | TapShare</title>
+  <meta name="theme-color" content="#2B3CFF">
+  <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/style.css">
+  <style>
+    .error-page {
+      min-height: 100svh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      text-align: center;
+    }
+    .error-content { max-width: 540px; }
+    .error-code {
+      font-size: clamp(90px, 24vw, 160px);
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -.08em;
+      color: var(--primary);
+      margin: 0 0 20px;
+    }
+    .error-content h1 {
+      font-size: clamp(28px, 6vw, 42px);
+      line-height: 1.1;
+      letter-spacing: -.04em;
+    }
+    .error-content p {
+      color: var(--muted);
+      margin-bottom: 28px;
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header wrap">
+    <a class="brand" href="./">
+      <img src="assets/mark.svg" alt="">TapShare
+    </a>
+  </header>
+
+  <main class="error-page">
+    <div class="error-content">
+      <p class="error-code">404</p>
+      <h1>Oops! Wrong connection.</h1>
+      <p>
+        Looks like this page couldn't be found.
+        Let's get you back on track.
+      </p>
+      <a class="btn btn-primary" href="./">Back to TapShare</a>
+    </div>
+  </main>
+</body>
+</html>
