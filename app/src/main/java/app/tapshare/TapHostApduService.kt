@@ -3,15 +3,15 @@ package app.tapshare
 import android.nfc.cardemulation.HostApduService
 import android.os.Bundle
 
-/** Offerta corrente del ricevitore (impostata da ReceiveActivity, letta dal servizio NFC). */
+/** The receiver's current offer (set by ReceiveActivity, read by the NFC service). */
 object ReceiveSession {
     @Volatile
     var offer: ByteArray? = null
 }
 
 /**
- * Il telefono che riceve si comporta come una carta NFC: quando il mittente fa SELECT
- * sul nostro AID, risponde con i dati per collegarsi alla rete Wi-Fi Direct.
+ * The receiving phone acts as an NFC card: when the sender sends SELECT for our AID,
+ * it answers with the details needed to join the Wi-Fi Direct network.
  */
 class TapHostApduService : HostApduService() {
 

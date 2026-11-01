@@ -14,9 +14,8 @@ import android.nfc.tech.IsoDep
 import android.os.Bundle
 import android.provider.OpenableColumns
 import android.text.format.Formatter
+import android.view.View
 import android.view.WindowManager
-import android.widget.Button
-import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -29,17 +28,18 @@ import java.net.Socket
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * Lato mittente:
- *  1. scegli il file (o condividilo da un'altra app);
- *  2. avvicina il telefono al ricevitore: l'NFC (modalità lettore) fornisce i dati di connessione;
- *  3. ci colleghiamo alla rete Wi-Fi Direct del ricevitore e inviamo il file su un socket TCP.
+ * Sender side of the tap mode:
+ *  1. pick a file (or share one from another app);
+ *  2. hold the phone against the receiver: NFC (reader mode) provides the connection details;
+ *  3. join the receiver's Wi-Fi Direct network and send the file over a TCP socket.
  */
 @SuppressLint("MissingPermission")
 class SendActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
 
-    private lateinit var fileLabel: TextView
-    private lateinit var status: TextView
-    private lateinit var progress: ProgressBar
+    private lateinit var drop: View
+    private lateinit var dropTitle: TextView
+    private lateinit var dropHint: TextView
+    private lateinit var ui: StateUi
 
     private var nfc: NfcAdapter? = null
     private var fileUri: Uri? = null
@@ -62,11 +62,14 @@ class SendActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_send)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        fileLabel = findViewById(R.id.fileLabel)
-        status = findViewById(R.id.status)
-        progress = findViewById(R.id.progress)
 
-        findViewById<Button>(R.id.btnPick).setOnClickListener { picker.launch(arrayOf("*/*")) }
+        drop = findViewById(R.id.drop)
+        dropTitle = findViewById(R.id.dropTitle)
+        dropHint = findViewById(R.id.dropHint)
+        ui = StateUi(findViewById(R.id.state))
+
+        findViewById<View>(R.id.back).setOnClickListener { finish() }
+        drop.setOnClickListener { if (!busy.get()) picker.launch(arrayOf("*/*")) }
 
         val missing = missingPermissions()
         if (missing.isNotEmpty()) permLauncher.launch(missing)
@@ -81,7 +84,11 @@ class SendActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
         super.onResume()
         val problem = nfcProblem(needHce = false)
         nfc = if (problem == null) NfcAdapter.getDefaultAdapter(this) else null
-        if (problem != null) setStatus(problem) else armReader()
+        if (problem != null) {
+            ui.set(getString(R.string.cant_start), problem, error = true)
+        } else {
+            armReader()
+        }
     }
 
     override fun onPause() {
@@ -89,7 +96,10 @@ class SendActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
         nfc?.disableReaderMode(this)
     }
 
-    private fun setStatus(text: String) = runOnUiThread { status.text = text }
+    override fun onDestroy() {
+        release()
+        super.onDestroy()
+    }
 
     private fun setFile(uri: Uri) {
         var name = "file"
@@ -106,24 +116,24 @@ class SendActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
             size = contentResolver.openAssetFileDescriptor(uri, "r")?.use { it.length } ?: -1L
         }
         if (size < 0) {
-            setStatus(getString(R.string.size_unknown))
+            ui.set(getString(R.string.cant_start), getString(R.string.size_unknown), error = true)
             return
         }
         fileUri = uri
         fileName = name
         fileSize = size
         fileMime = contentResolver.getType(uri) ?: "application/octet-stream"
-        fileLabel.text = getString(R.string.file_info, name, Formatter.formatShortFileSize(this, size))
-        progress.setFraction(0, 1)
+
+        dropTitle.text = name
+        dropHint.text = Formatter.formatShortFileSize(this, size)
+        drop.setBackgroundResource(R.drawable.bg_drop_filled)
+        ui.hideProgress()
+        ui.action(null)
     }
 
-    private fun armReader() {
+    private fun enableReader() {
         val adapter = nfc ?: return
-        if (fileUri == null) {
-            setStatus(getString(R.string.pick_first))
-            return
-        }
-        if (busy.get()) return
+        if (fileUri == null) return
         adapter.enableReaderMode(
             this,
             this,
@@ -131,10 +141,31 @@ class SendActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
                 NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK,
             null,
         )
-        setStatus(getString(R.string.tap_now))
     }
 
-    // --- NFC: legge l'offerta dal ricevitore ---
+    private fun armReader() {
+        if (nfc == null || busy.get()) return
+        if (fileUri == null) {
+            ui.set(getString(R.string.pick_title), getString(R.string.pick_detail))
+            return
+        }
+        enableReader()
+        ui.set(getString(R.string.tap_title), getString(R.string.tap_detail), active = true)
+    }
+
+    private fun resetForNew() {
+        fileUri = null
+        fileName = ""
+        fileSize = -1L
+        dropTitle.text = getString(R.string.drop_title)
+        dropHint.text = getString(R.string.drop_hint)
+        drop.setBackgroundResource(R.drawable.bg_drop)
+        ui.hideProgress()
+        ui.action(null)
+        armReader()
+    }
+
+    // --- NFC: read the connection details from the receiver ---
 
     override fun onTagDiscovered(tag: Tag) {
         if (!busy.compareAndSet(false, true)) return
@@ -162,15 +193,15 @@ class SendActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
         }
     }
 
-    // --- Wi-Fi diretto + invio ---
+    // --- direct Wi-Fi + transfer ---
 
     private fun connectAndSend(offer: Offer) {
         if (!wifiOn()) {
             fail(getString(R.string.wifi_off))
             return
         }
-        setStatus(getString(R.string.connecting))
-        progress.setFraction(0, 1)
+        ui.set(getString(R.string.connecting_title), getString(R.string.connecting_detail), active = true)
+        ui.hideProgress()
 
         val cm = getSystemService(ConnectivityManager::class.java)
         val specifier = WifiNetworkSpecifier.Builder()
@@ -213,7 +244,7 @@ class SendActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
                 }
             } catch (e: Exception) {
                 last = e
-                Thread.sleep(700) // il ricevitore può impiegare un attimo a essere pronto
+                Thread.sleep(700) // the receiver may need a moment to be ready
             }
         }
         throw last ?: IOException(getString(R.string.connect_failed))
@@ -222,32 +253,37 @@ class SendActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
     private fun transfer(network: Network, offer: Offer) {
         val uri = fileUri
         if (uri == null) {
-            fail(getString(R.string.pick_first))
+            fail(getString(R.string.pick_title))
             return
         }
+        val size = fileSize
+        val sizeText = Formatter.formatShortFileSize(this, size)
         try {
             connect(network, offer).use { s ->
                 s.soTimeout = 20_000
                 val out = DataOutputStream(BufferedOutputStream(s.getOutputStream(), 64 * 1024))
-                Protocol.writeHeader(out, FileHeader(offer.token, fileName, fileMime, fileSize))
-                setStatus(getString(R.string.sending, fileName))
+                Protocol.writeHeader(out, FileHeader(offer.token, fileName, fileMime, size))
+                ui.set(
+                    getString(R.string.sending_title),
+                    getString(R.string.sending_detail, fileName, sizeText),
+                )
+                ui.progress(0, size)
                 contentResolver.openInputStream(uri)!!.use { input ->
-                    Protocol.copyExact(input, out, fileSize) { done ->
-                        runOnUiThread { progress.setFraction(done, fileSize) }
-                    }
+                    Protocol.copyExact(input, out, size) { done -> ui.progress(done, size) }
                 }
                 out.flush()
                 if (s.getInputStream().read() != 1) throw IOException(getString(R.string.no_ack))
             }
-            runOnUiThread { progress.setFraction(1, 1) }
-            setStatus(getString(R.string.sent_ok, fileName))
+            ui.progress(size, size)
+            ui.set(getString(R.string.sent_title), getString(R.string.sent_detail, fileName, sizeText))
+            ui.action(getString(R.string.send_again)) { resetForNew() }
             release()
         } catch (e: Exception) {
             fail(e.message ?: e.javaClass.simpleName)
         }
     }
 
-    /** Lascia la rete Wi-Fi Direct e rimette l'app pronta a un nuovo invio. */
+    /** Leaves the Wi-Fi Direct network and makes the screen ready for another transfer. */
     private fun release() {
         netCallback?.let {
             runCatching { getSystemService(ConnectivityManager::class.java).unregisterNetworkCallback(it) }
@@ -257,19 +293,14 @@ class SendActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
     }
 
     private fun fail(message: String) {
-        setStatus(getString(R.string.failed, message) + "\n" + getString(R.string.retry_hint))
+        ui.set(
+            getString(R.string.failed_send_title),
+            message + "\n" + getString(R.string.retry_hint),
+            error = true,
+        )
+        ui.hideProgress()
+        ui.action(null)
         release()
-        runOnUiThread {
-            val adapter = nfc
-            if (adapter != null && fileUri != null) {
-                adapter.enableReaderMode(
-                    this,
-                    this,
-                    NfcAdapter.FLAG_READER_NFC_A or NfcAdapter.FLAG_READER_NFC_B or
-                        NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK,
-                    null,
-                )
-            }
-        }
+        runOnUiThread { enableReader() }
     }
 }

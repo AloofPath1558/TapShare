@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Status block shared by the send and receive screens (see StateUi.kt). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_horizontal"
+    android:orientation="vertical">
+
+    <app.tapshare.PulseView
+        android:id="@+id/pulse"
+        android:layout_width="132dp"
+        android:layout_height="132dp"
+        android:layout_marginTop="16dp"
+        android:importantForAccessibility="no" />
+
+    <TextView
+        android:id="@+id/stateTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:accessibilityLiveRegion="polite"
+        android:gravity="center"
+        android:textColor="@color/ink"
+        android:textSize="26sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/stateDetail"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:gravity="center"
+        android:lineSpacingMultiplier="1.1"
+        android:textColor="@color/muted"
+        android:textSize="16sp" />
+
+    <com.google.android.material.progressindicator.LinearProgressIndicator
+        android:id="@+id/progress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="22dp"
+        android:max="1000"
+        android:visibility="gone"
+        app:indicatorColor="@color/primary"
+        app:trackColor="@color/surface2"
+        app:trackCornerRadius="5dp"
+        app:trackThickness="10dp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnAction"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:minWidth="180dp"
+        android:visibility="gone" />
+</LinearLayout>

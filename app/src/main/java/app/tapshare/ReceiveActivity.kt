@@ -9,9 +9,8 @@ import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
 import android.text.format.Formatter
+import android.view.View
 import android.view.WindowManager
-import android.widget.ProgressBar
-import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import java.io.BufferedInputStream
@@ -22,16 +21,15 @@ import java.net.ServerSocket
 import java.net.Socket
 
 /**
- * Lato ricevente:
- *  1. crea un gruppo Wi-Fi Direct con nome e password casuali;
- *  2. pubblica i dati di connessione tramite il servizio NFC (TapHostApduService);
- *  3. aspetta il file su un socket TCP e lo salva in Download/TapShare.
+ * Receiver side of the tap mode:
+ *  1. creates a Wi-Fi Direct group with a random name and password;
+ *  2. publishes the connection details through the NFC service (TapHostApduService);
+ *  3. waits for the file on a TCP socket and saves it to Downloads/TapShare.
  */
 @SuppressLint("MissingPermission")
 class ReceiveActivity : AppCompatActivity() {
 
-    private lateinit var status: TextView
-    private lateinit var progress: ProgressBar
+    private lateinit var ui: StateUi
     private var manager: WifiP2pManager? = null
     private var channel: WifiP2pManager.Channel? = null
     private var server: ServerSocket? = null
@@ -42,33 +40,34 @@ class ReceiveActivity : AppCompatActivity() {
 
     private val permLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
-            if (missingPermissions().isEmpty()) startReceiving()
-            else setStatus(getString(R.string.perm_needed))
+            if (missingPermissions().isEmpty()) {
+                startReceiving()
+            } else {
+                ui.set(getString(R.string.cant_start), getString(R.string.perm_needed), error = true)
+            }
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_receive)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        status = findViewById(R.id.status)
-        progress = findViewById(R.id.progress)
+        ui = StateUi(findViewById(R.id.state))
+        findViewById<View>(R.id.back).setOnClickListener { finish() }
 
         nfcProblem(needHce = true)?.let {
-            setStatus(it)
+            ui.set(getString(R.string.cant_start), it, error = true)
             return
         }
         val missing = missingPermissions()
         if (missing.isEmpty()) startReceiving() else permLauncher.launch(missing)
     }
 
-    private fun setStatus(text: String) = runOnUiThread { status.text = text }
-
     private fun startReceiving() {
         if (!wifiOn()) {
-            setStatus(getString(R.string.wifi_off))
+            ui.set(getString(R.string.cant_start), getString(R.string.wifi_off), error = true)
             return
         }
-        setStatus(getString(R.string.preparing))
+        ui.set(getString(R.string.preparing_title), getString(R.string.preparing_detail), active = true)
 
         val mgr = getSystemService(WIFI_P2P_SERVICE) as WifiP2pManager
         val ch = mgr.initialize(this, mainLooper, null)
@@ -88,17 +87,22 @@ class ReceiveActivity : AppCompatActivity() {
                 override fun onSuccess() {
                     ReceiveSession.offer =
                         Offer(ssid, pass, Protocol.GROUP_OWNER_IP, Protocol.PORT, token).toBytes()
-                    setStatus(getString(R.string.ready_receive))
+                    ui.set(getString(R.string.ready_title), getString(R.string.ready_detail), active = true)
                     startServer()
                 }
 
                 override fun onFailure(reason: Int) {
-                    setStatus(getString(R.string.failed, "Wi-Fi Direct ($reason)"))
+                    ui.set(
+                        getString(R.string.failed_receive_title),
+                        getString(R.string.wifi_direct_failed, reason),
+                        error = true,
+                    )
+                    ui.action(getString(R.string.start_over)) { recreate() }
                 }
             })
         }
 
-        // libera un eventuale gruppo rimasto da prima, poi crea il nostro
+        // free any group left over from before, then create ours
         mgr.removeGroup(ch, object : WifiP2pManager.ActionListener {
             override fun onSuccess() {
                 create()
@@ -120,10 +124,18 @@ class ReceiveActivity : AppCompatActivity() {
                 server = ss
                 while (!closing) {
                     val socket = ss.accept()
-                    if (handle(socket)) break // un trasferimento riuscito chiude la sessione
+                    if (handle(socket)) break // a completed transfer ends the session
                 }
             } catch (e: Exception) {
-                if (!closing) setStatus(getString(R.string.failed, e.message ?: e.javaClass.simpleName))
+                if (!closing) {
+                    ui.set(
+                        getString(R.string.failed_receive_title),
+                        e.message ?: e.javaClass.simpleName,
+                        error = true,
+                    )
+                    ui.hideProgress()
+                    ui.action(getString(R.string.start_over)) { recreate() }
+                }
             } finally {
                 ReceiveSession.offer = null
                 runCatching { server?.close() }
@@ -132,7 +144,7 @@ class ReceiveActivity : AppCompatActivity() {
         }.start()
     }
 
-    /** Gestisce una connessione. Restituisce true solo se il file è stato ricevuto per intero. */
+    /** Handles one connection. Returns true only when the whole file was received. */
     private fun handle(socket: Socket): Boolean {
         var uri: Uri? = null
         try {
@@ -140,14 +152,15 @@ class ReceiveActivity : AppCompatActivity() {
                 s.soTimeout = 20_000
                 val input = DataInputStream(BufferedInputStream(s.getInputStream(), 64 * 1024))
                 val h = Protocol.readHeader(input)
-                if (h.token != token) return false // chi non conosce il token viene scartato
-                if (h.size < 0) throw IOException("Dimensione non valida")
+                if (h.token != token) return false // anyone who doesn't know the token is dropped
+                if (h.size < 0) throw IOException("Invalid file size")
 
                 val name = h.name.substringAfterLast('/')
                     .replace(Regex("[\\\\:*?\"<>|]"), "_")
                     .ifBlank { "file" }
-                setStatus(getString(R.string.receiving, name))
-                runOnUiThread { progress.setFraction(0, h.size) }
+                val sizeText = Formatter.formatShortFileSize(this, h.size)
+                ui.set(getString(R.string.receiving_title), getString(R.string.receiving_detail, name, sizeText))
+                ui.progress(0, h.size)
 
                 val values = ContentValues().apply {
                     put(MediaStore.Downloads.DISPLAY_NAME, name)
@@ -156,13 +169,11 @@ class ReceiveActivity : AppCompatActivity() {
                     put(MediaStore.Downloads.IS_PENDING, 1)
                 }
                 val target = contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
-                    ?: throw IOException("Impossibile creare il file")
+                    ?: throw IOException("Could not create the file")
                 uri = target
 
                 contentResolver.openOutputStream(target)!!.use { out ->
-                    Protocol.copyExact(input, out, h.size) { done ->
-                        runOnUiThread { progress.setFraction(done, h.size) }
-                    }
+                    Protocol.copyExact(input, out, h.size) { done -> ui.progress(done, h.size) }
                 }
                 contentResolver.update(
                     target,
@@ -172,18 +183,23 @@ class ReceiveActivity : AppCompatActivity() {
                 )
 
                 s.getOutputStream().apply {
-                    write(1) // conferma di ricezione
+                    write(1) // receipt confirmation
                     flush()
                 }
-                runOnUiThread { progress.setFraction(1, 1) }
-                setStatus(getString(R.string.received_ok, name, Formatter.formatShortFileSize(this, h.size)))
+                ui.progress(h.size, h.size)
+                ui.set(getString(R.string.received_title), getString(R.string.received_detail, name, sizeText))
+                ui.action(getString(R.string.receive_again)) { recreate() }
             }
             return true
         } catch (e: Exception) {
             uri?.let { runCatching { contentResolver.delete(it, null, null) } }
             if (!closing) {
-                setStatus(getString(R.string.failed, e.message ?: e.javaClass.simpleName) +
-                    "\n" + getString(R.string.retry_hint))
+                ui.set(
+                    getString(R.string.failed_receive_title),
+                    (e.message ?: e.javaClass.simpleName) + "\n" + getString(R.string.retry_hint),
+                    error = true,
+                )
+                ui.hideProgress()
             }
             return false
         }

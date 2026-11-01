@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>TapShare web version</title>
+  <meta name="description" content="Send a file to another device with a six-character code. The file goes straight between the two devices.">
+  <meta name="theme-color" content="#EEF1F8" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#070A24" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="../assets/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body class="app-page">
+
+<header class="site-header wrap">
+  <a class="brand" href="../"><img src="../assets/logo.svg" alt="">TapShare</a>
+  <nav aria-label="Main"><a href="../">How it works</a></nav>
+</header>
+
+<main class="wrap app-main">
+
+  <!-- Home -->
+  <section data-view="home">
+    <h1>Send or receive a file</h1>
+    <p class="muted">Pair with a six-character code. The file goes straight from one device to the other.</p>
+
+    <div class="rows">
+      <button class="row" type="button" data-go="send">
+        <span class="row-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9,16h6v-6h4l-7,-7 -7,7h4zM5,18h14v2H5z"/></svg>
+        </span>
+        <span><span class="row-title">Send a file</span><span class="row-desc">Pick a file, then enter the receiver's code</span></span>
+        <span class="row-chevron" aria-hidden="true">&#8250;</span>
+      </button>
+      <button class="row" type="button" data-go="receive">
+        <span class="row-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5,20h14v-2H5v2zM19,9h-4V3H9v6H5l7,7 7,-7z"/></svg>
+        </span>
+        <span><span class="row-title">Receive a file</span><span class="row-desc">Get a code to share with the sender</span></span>
+        <span class="row-chevron" aria-hidden="true">&#8250;</span>
+      </button>
+    </div>
+
+    <p class="note only-web">To pair by tapping two phones, use the Android app. <a href="../">See how it works</a>.</p>
+  </section>
+
+  <!-- Send -->
+  <section data-view="send" hidden>
+    <div class="topline">
+      <button class="back" type="button" data-go="home" aria-label="Back">&#8249;</button>
+      <h2 class="view-title">Send a file</h2>
+    </div>
+
+    <div class="panel" id="sendForm">
+      <label class="drop" id="drop">
+        <input type="file" id="fileInput" hidden>
+        <span class="drop-title" id="dropTitle">Choose a file</span>
+        <span class="drop-hint" id="dropHint">or drop it here</span>
+      </label>
+
+      <label class="field-label" for="codeInput">Receiver's code</label>
+      <input class="code-input" id="codeInput" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="7" placeholder="ABC 123">
+
+      <button class="btn btn-primary btn-block" id="sendBtn" type="button" disabled>Send file</button>
+    </div>
+
+    <div class="state" id="sendState" hidden>
+      <div class="pulse" aria-hidden="true"><i></i><i></i><i></i></div>
+      <h2 class="state-title" role="status"></h2>
+      <p class="state-detail"></p>
+      <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden><div class="bar-fill"></div></div>
+      <div class="actions">
+        <button class="btn btn-tonal" id="sendCancel" type="button">Cancel</button>
+        <button class="btn btn-primary" id="sendAgain" type="button" hidden>Try again</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Receive -->
+  <section data-view="receive" hidden>
+    <div class="topline">
+      <button class="back" type="button" data-go="home" aria-label="Back">&#8249;</button>
+      <h2 class="view-title">Receive a file</h2>
+    </div>
+
+    <div class="code-pad" id="codePad" hidden>
+      <p>Give this code to the sender</p>
+      <div class="code-big" id="codeBig" aria-live="polite"></div>
+      <p>They can also scan the QR code or open the link.</p>
+      <div class="qr" id="qr" hidden></div>
+      <div class="code-tools">
+        <button class="btn btn-light" id="copyCode" type="button">Copy code</button>
+        <button class="btn btn-outline-light" id="copyLink" type="button">Copy link</button>
+        <button class="btn btn-outline-light" id="shareLink" type="button" hidden>Share link</button>
+      </div>
+    </div>
+
+    <div class="panel incoming" id="incoming" hidden>
+      <h3>Incoming file</h3>
+      <p class="file-name" id="inName"></p>
+      <p class="file-size" id="inSize"></p>
+      <div class="actions">
+        <button class="btn btn-primary" id="acceptBtn" type="button">Accept</button>
+        <button class="btn btn-tonal" id="declineBtn" type="button">Decline</button>
+      </div>
+    </div>
+
+    <div class="state" id="recvState">
+      <div class="pulse" aria-hidden="true"><i></i><i></i><i></i></div>
+      <h2 class="state-title" role="status"></h2>
+      <p class="state-detail"></p>
+      <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden><div class="bar-fill"></div></div>
+      <div class="actions">
+        <a class="btn btn-primary" id="saveLink" hidden>Save file</a>
+        <button class="btn btn-tonal" id="recvCancel" type="button">Cancel</button>
+        <button class="btn btn-primary" id="recvAgain" type="button" hidden>Receive another file</button>
+      </div>
+    </div>
+  </section>
+
+  <noscript><p>The web version needs JavaScript.</p></noscript>
+</main>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

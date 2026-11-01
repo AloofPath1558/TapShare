@@ -7,7 +7,7 @@ import android.nfc.NfcAdapter
 import android.widget.ProgressBar
 import androidx.core.content.ContextCompat
 
-/** Restituisce un messaggio d'errore se l'NFC non è utilizzabile, altrimenti null. */
+/** Returns a message explaining why NFC can't be used, or null when it can. */
 fun Context.nfcProblem(needHce: Boolean): String? {
     val adapter = NfcAdapter.getDefaultAdapter(this) ?: return getString(R.string.nfc_missing)
     if (needHce && !packageManager.hasSystemFeature(PackageManager.FEATURE_NFC_HOST_CARD_EMULATION)) {

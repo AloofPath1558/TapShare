@@ -2,9 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <uses-feature android:name="android.hardware.nfc" android:required="true" />
-    <uses-feature android:name="android.hardware.nfc.hce" android:required="true" />
-    <uses-feature android:name="android.hardware.wifi.direct" android:required="true" />
+    <!-- Not required: pairing with a code (Web mode) works on any phone or tablet. -->
+    <uses-feature android:name="android.hardware.nfc" android:required="false" />
+    <uses-feature android:name="android.hardware.nfc.hce" android:required="false" />
+    <uses-feature android:name="android.hardware.wifi.direct" android:required="false" />
 
     <uses-permission android:name="android.permission.NFC" />
     <uses-permission android:name="android.permission.INTERNET" />
@@ -22,8 +23,9 @@
 
     <application
         android:allowBackup="false"
-        android:icon="@drawable/ic_launcher"
+        android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher"
         android:theme="@style/Theme.TapShare">
 
         <activity
@@ -35,9 +37,10 @@
             </intent-filter>
         </activity>
 
-        <!-- Accetta anche file condivisi dal menu "Condividi" di altre app -->
+        <!-- Also accepts files shared from the "Share" menu of other apps (tap mode) -->
         <activity
             android:name=".SendActivity"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
@@ -48,9 +51,27 @@
 
         <activity
             android:name=".ReceiveActivity"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize"
             android:exported="false" />
 
-        <!-- Il ricevitore si presenta come "carta" NFC e consegna i dati di connessione -->
+        <!-- Web mode: the TapShare website, bundled in the app. Opens links like
+             https://aloofpath1558.github.io/TapShare/web/?join=ABC123 -->
+        <activity
+            android:name=".WebActivity"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:host="aloofpath1558.github.io"
+                    android:pathPrefix="/TapShare/web"
+                    android:scheme="https" />
+            </intent-filter>
+        </activity>
+
+        <!-- The receiver acts as an NFC card and hands over the Wi-Fi connection details -->
         <service
             android:name=".TapHostApduService"
             android:exported="true"

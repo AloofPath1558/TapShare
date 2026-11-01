@@ -10,7 +10,7 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.security.SecureRandom
 
-/** Offerta che il ricevitore consegna via NFC al mittente. */
+/** What the receiver hands to the sender over NFC. */
 data class Offer(
     val ssid: String,
     val pass: String,
@@ -37,15 +37,15 @@ data class Offer(
     }
 }
 
-/** Intestazione che precede i byte del file sul socket. */
+/** Header sent before the file bytes on the socket. */
 data class FileHeader(val token: String, val name: String, val mime: String, val size: Long)
 
 object Protocol {
-    /** AID proprietario (F0 + "TAPSHARE"): deve coincidere con res/xml/apduservice.xml */
+    /** Proprietary AID (F0 + "TAPSHARE"): must match res/xml/apduservice.xml */
     const val AID_HEX = "F05441505348415245"
     const val PORT = 8988
 
-    /** Indirizzo predefinito del group owner in una rete Wi-Fi Direct Android. */
+    /** Default address of the group owner in an Android Wi-Fi Direct network. */
     const val GROUP_OWNER_IP = "192.168.49.1"
 
     val SW_OK = byteArrayOf(0x90.toByte(), 0x00)
@@ -63,7 +63,7 @@ object Protocol {
         apdu.size >= selectHeader.size &&
             apdu.copyOfRange(0, selectHeader.size).contentEquals(selectHeader)
 
-    // --- credenziali casuali, nuove a ogni sessione ---
+    // --- random credentials, new for every session ---
 
     private val rnd = SecureRandom()
     private const val ALNUM = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789"
@@ -72,7 +72,7 @@ object Protocol {
     private fun random(len: Int, alphabet: String): String =
         String(CharArray(len) { alphabet[rnd.nextInt(alphabet.length)] })
 
-    /** Il nome di un gruppo Wi-Fi Direct deve iniziare con "DIRECT-xy". */
+    /** A Wi-Fi Direct group name must start with "DIRECT-xy". */
     fun randomSsid(): String = "DIRECT-TS-" + random(4, UPPER)
     fun randomPass(): String = random(12, ALNUM)
     fun randomToken(): String = random(16, ALNUM)
@@ -81,7 +81,7 @@ object Protocol {
         if (Build.VERSION.SDK_INT >= 33) arrayOf(Manifest.permission.NEARBY_WIFI_DEVICES)
         else arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
 
-    // --- intestazione e copia dei byte ---
+    // --- header and byte copying ---
 
     fun writeHeader(out: DataOutputStream, h: FileHeader) {
         out.writeUTF(h.token)
@@ -93,14 +93,14 @@ object Protocol {
     fun readHeader(input: DataInputStream): FileHeader =
         FileHeader(input.readUTF(), input.readUTF(), input.readUTF(), input.readLong())
 
-    /** Copia esattamente [size] byte; chiama [onProgress] al massimo ogni ~100 ms. */
+    /** Copies exactly [size] bytes; calls [onProgress] at most every ~100 ms. */
     fun copyExact(input: InputStream, out: OutputStream, size: Long, onProgress: (Long) -> Unit) {
         val buf = ByteArray(64 * 1024)
         var done = 0L
         var lastTick = 0L
         while (done < size) {
             val n = input.read(buf, 0, minOf(buf.size.toLong(), size - done).toInt())
-            if (n < 0) throw EOFException("Connessione interrotta")
+            if (n < 0) throw EOFException("Connection interrupted")
             out.write(buf, 0, n)
             done += n
             val now = System.currentTimeMillis()

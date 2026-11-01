@@ -1,32 +1,61 @@
 <resources>
     <string name="app_name">TapShare</string>
-    <string name="main_hint">Per trasferire un file avvicina i due telefoni (NFC): il file viaggia poi su una connessione Wi-Fi diretta, senza internet.</string>
-    <string name="btn_send">Invia</string>
-    <string name="btn_receive">Ricevi</string>
-    <string name="send_title">Invia un file</string>
-    <string name="receive_title">Ricevi un file</string>
-    <string name="btn_pick">Scegli file</string>
-    <string name="no_file">Nessun file selezionato</string>
-    <string name="file_info">%1$s (%2$s)</string>
-    <string name="pick_first">Scegli prima il file da inviare.</string>
-    <string name="tap_now">Avvicina il retro di questo telefono a quello del destinatario (che deve avere aperto «Ricevi»).</string>
-    <string name="connecting">Connessione diretta in corso…</string>
-    <string name="sending">Invio di %1$s…</string>
-    <string name="sent_ok">Inviato: %1$s</string>
-    <string name="preparing">Preparazione della connessione…</string>
-    <string name="ready_receive">Pronto. Tieni lo schermo acceso e avvicina l\'altro telefono.</string>
-    <string name="receiving">Ricezione di %1$s…</string>
-    <string name="received_ok">Ricevuto: %1$s (%2$s)\nSalvato in Download/TapShare</string>
-    <string name="failed">Errore: %1$s</string>
-    <string name="retry_hint">Avvicina di nuovo i telefoni per riprovare.</string>
-    <string name="perm_needed">Servono i permessi per la connessione Wi-Fi diretta.</string>
-    <string name="nfc_missing">Questo telefono non ha l\'NFC.</string>
-    <string name="hce_missing">Questo telefono non supporta l\'emulazione di carta NFC, necessaria per ricevere.</string>
-    <string name="nfc_off">L\'NFC è disattivato: attivalo nelle impostazioni.</string>
-    <string name="wifi_off">Il Wi-Fi è disattivato: attivalo e riprova.</string>
-    <string name="wifi_unavailable">Impossibile collegarsi all\'altro telefono.</string>
-    <string name="not_tapshare">L\'altro telefono non sta ricevendo con TapShare.</string>
-    <string name="size_unknown">Impossibile leggere la dimensione del file.</string>
-    <string name="no_ack">Il destinatario non ha confermato la ricezione.</string>
-    <string name="connect_failed">Connessione fallita.</string>
+    <string name="nav_back">Back</string>
+
+    <!-- Home -->
+    <string name="main_title">Send or receive a file</string>
+    <string name="main_hint">Tap two phones together, or pair with a code. The file goes straight between the devices.</string>
+    <string name="row_send">Send by tap</string>
+    <string name="row_send_desc">Pick a file, then hold the phones together</string>
+    <string name="row_receive">Receive by tap</string>
+    <string name="row_receive_desc">Let the sender tap your phone</string>
+    <string name="row_web">Use a code</string>
+    <string name="row_web_desc">Works with the TapShare website and any device</string>
+    <string name="main_note">Tapping works between two Android phones. A code also works with iPhone, computers and the TapShare website.</string>
+
+    <!-- Send by tap -->
+    <string name="send_title">Send by tap</string>
+    <string name="drop_title">Choose a file</string>
+    <string name="drop_hint">Tap to browse</string>
+    <string name="pick_title">Choose a file to send</string>
+    <string name="pick_detail">Then hold your phone against the receiver\'s phone.</string>
+    <string name="tap_title">Hold the phones together</string>
+    <string name="tap_detail">Put the back of this phone against the other one. The receiver needs Receive open.</string>
+    <string name="connecting_title">Connecting…</string>
+    <string name="connecting_detail">Setting up the direct connection.</string>
+    <string name="sending_title">Sending…</string>
+    <string name="sending_detail">%1$s (%2$s)</string>
+    <string name="sent_title">Sent</string>
+    <string name="sent_detail">%1$s (%2$s) arrived.</string>
+    <string name="send_again">Send another file</string>
+    <string name="failed_send_title">Couldn\'t send the file</string>
+
+    <!-- Receive by tap -->
+    <string name="receive_title">Receive by tap</string>
+    <string name="preparing_title">Getting ready…</string>
+    <string name="preparing_detail">Starting the direct connection.</string>
+    <string name="ready_title">Ready to receive</string>
+    <string name="ready_detail">Keep the screen on and hold the sender\'s phone against this one.</string>
+    <string name="receiving_title">Receiving…</string>
+    <string name="receiving_detail">%1$s (%2$s)</string>
+    <string name="received_title">Received</string>
+    <string name="received_detail">%1$s (%2$s) was saved to Downloads/TapShare.</string>
+    <string name="receive_again">Receive another file</string>
+    <string name="start_over">Start over</string>
+    <string name="failed_receive_title">Couldn\'t receive the file</string>
+
+    <!-- Problems -->
+    <string name="cant_start">Can\'t get started</string>
+    <string name="retry_hint">Hold the phones together again to retry.</string>
+    <string name="perm_needed">Allow nearby devices (or location on older Android versions) in Settings so TapShare can set up the direct connection.</string>
+    <string name="nfc_missing">This phone doesn\'t have NFC. You can still pair with a code.</string>
+    <string name="hce_missing">This phone can\'t act as an NFC card, which is needed to receive by tap. You can still pair with a code.</string>
+    <string name="nfc_off">NFC is turned off. Turn it on in Settings.</string>
+    <string name="wifi_off">Wi-Fi is turned off. Turn it on and try again.</string>
+    <string name="wifi_direct_failed">Wi-Fi Direct could not start (error %1$d). Turn Wi-Fi off and on, then try again.</string>
+    <string name="wifi_unavailable">Couldn\'t connect to the other phone.</string>
+    <string name="not_tapshare">The other phone isn\'t receiving with TapShare.</string>
+    <string name="size_unknown">Couldn\'t read the file size.</string>
+    <string name="no_ack">The receiver didn\'t confirm the file arrived.</string>
+    <string name="connect_failed">Connection failed.</string>
 </resources>
